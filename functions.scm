@@ -31,13 +31,38 @@
     )
 )
 
+;member code from the book
+(define member?
+  (lambda (a lat)
+    (cond
+      ((null? lat) #f)
+      (else (or (eq? (car lat) a)
+                (member? a (cdr lat)))))))
+                
+; make set takes a list and removes all duplicate entries
+; params - x a list
+; results - a list with all duplicates removed (a a b b c c) => ( a b c )
+(define makeset
+  (lambda (lat)
+    (cond
+      ((null? lat) '())
+      ((member? (car lat) (cdr lat)) (makeset (cdr lat)))
+      (else
+        (cons (car lat) (makeset (cdr lat)))))))
 
-; vars - extracts the variables from the list x skipping over the operators
+
+(define vars
+    (lambda (x)
+        (makeset (nvar x))
+    )
+)
+
+; nvar - extracts the variables from the list x skipping over the operators
 ; params - a list in the for (<operator> <a> <b>) where a and/or b can be either
 ;          a list, or an atom. If a or b are lists they can be null, but they can be formated in the same way.
 ;          The list can also be formated as (<operator> <a>).
 ; returns - a list of variables from the list passed in
-(define vars
+(define nvar
     (lambda (x)
         (cond
             ;check if the list is null
@@ -49,17 +74,17 @@
             ((list? (lhs x))
                 (cond
                     ;first we must check if we have a right hand side to evaluate
-                    ; no rhs means we just take the vars form the list lhs
-                    ((null? (cdr (cdr x))) (cons (vars (lhs x)) '()))
+                    ; no rhs means we just take the nvar form the list lhs
+                    ((null? (cdr (cdr x))) (cons (nvar (lhs x)) '()))
                     
                     ;check what is in the rhs
-                    ((list? (rhs x)) (append (cons (vars(lhs x)) '()) (vars (rhs  x))) )
+                    ((list? (rhs x)) (append (cons (nvar(lhs x)) '()) (nvar (rhs  x))) )
                     
                     ;as long as the thing in the rhs isn't a number we can add it to the list
-                    ((not (number? (rhs x))) (append (cons (vars(lhs x)) '())  (rhs  x)))
+                    ((not (number? (rhs x))) (append (cons (nvar(lhs x)) '())  (rhs  x)))
                     
                     ;we have entered a weird and wild case where the rhs should not be added to the list
-                    (else (cons (vars (lhs x)) '()))
+                    (else (cons (nvar (lhs x)) '()))
                     
                 )
             )
@@ -69,7 +94,7 @@
                 ;inside here we have no rhs
                 (cond
                     ;check if the lhs is a variable
-                    ((not (number? (lhs x)) (cons (vars (lhs x)) '())) )
+                    ((not (number? (lhs x)) (cons (nvar (lhs x)) '())) )
                     
                     ;do nothing if it is a number
                     (else '())
@@ -108,8 +133,7 @@
             ((not (number? (rhs x)))  (cons (rhs x) '())  ) 
             
             ;we have no more variables and nore more list
-            (else '())
-            
+             (else '())
         )
     )
 )
