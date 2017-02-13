@@ -28,6 +28,7 @@
 (define rhs
     (lambda (x)
         (car (cdr (cdr x)))
+        
     )
 )
 
@@ -143,6 +144,7 @@
 (define solve
     (lambda (x y)
         (cond
+            ;((not (member? y (vars x))) '())
             ;if the lhs of x is y just return x
             ((equal? y (lhs x)) x)
             ;if the rhs is y then return the list as (<op> <rhs> <lhs>)
@@ -156,7 +158,9 @@
             )
             (else
                 ;at this point the rhs contains something we can solve for!
-                (append (solve (moveright x) y) (solve (moveleft x) y))
+                ;(append (solve (moveright x) y) (solve (moveleft x) y))
+                (moveleft x)
+
             )
         )
     )
@@ -164,36 +168,202 @@
 
 (define moveleft
     (lambda (x)
-            ;combine the equal sign with the proper lefthand side and righthand size
-            (cons '= 
-                
-                (cons
-                    ;to construct the left hand side
-                    (cons
-                        ;flip the op
-                        (opflip (op (rhs x)))
-                        
-                        ;then combine with 
+        (cond
+            ;unary check
+            ((unary (rhs x)) 
+                (cond
+                    ((equal? (op (rhs x)) '-)
+                        ;so we just have to multiply both sides by negative 1
                         (cons
-                            ;the lhs of x
-                            (lhs x) 
-                            
-                            ;and the lhs of the rhs of x
-                            (cons (lhs (rhs x)) '())
+                            '=
+                            (cons
+                                (cons 
+                                    '-
+                                    (cons 
+                                        (lhs x) '()
+                                    )
+                                
+                                )
+                                (cons
+                                    (lhs (rhs x))
+                                    '()
+                                )
+                            )
                         )
+                     
+                     
+                     
+                    )
+                    
+                    ((equal? (op (rhs x)) 'sqrt)
+                        (cons
+                            '=
+                            (cons
+                                (cons 
+                                    'expt
+                                    (cons 
+                                        (lhs x) 
+                                        (cons '2 '())
+                                    )
+                                
+                                )
+                                (cons
+                                    (lhs (rhs x))
+                                    '()
+                                )
+                            )
+                        )
+                        
+                    )
+                )
+                
+            )
+            
+            ;special case if the other side is expt n 2
+            ((equal? (op (rhs x)) 'expt)
+                ;the lhs becomes sqrt and the other side is just the lhs
+                    (cons
+                            '=
+                            (cons
+                                (cons 
+                                    'sqrt
+                                    (cons
+                                    (lhs x) '())
+                                
+                                )
+                                (cons
+                                    (lhs (rhs x))
+                                    '()
+                                )
+                            )
+                        )
+            )
+            
+            ;move left has some special rules with -, /, log
+            ((equal? (op (rhs x)) '-)
+                ;the lhs becomes sqrt and the other side is just the lhs
+                (cons '= 
+                    
+                    (cons
+                        ;to construct the left hand side
+                        (cons
+                            ;flip the op
+                            (op (rhs x))
+                            
+                            ;then combine with 
+                            (cons
+                                ;the lhs of x
+                                (lhs x) 
+                                
+                                ;and the lhs of the rhs of x
+                                (cons (lhs (rhs x)) '())
+                            )
+                        )
+                        
+                        
+                        (cons
+                            ;this is just the rhs of the rhs of x
+                            (cons 
+                                '- 
+                                (cons
+                                    (rhs (rhs x))
+                                    '()
+                                )
+                            )
+                            '()
+                        )
+
                     )
                     
                     
-
-                    ;this is just the rhs of the rhs of x
-                    (cons (rhs (rhs x)) '())
-
                 )
-                
-                
             )
+            
+            ((equal? (op (rhs x)) '/)
+                ;the lhs becomes sqrt and the other side is just the lhs
+                (cons '= 
+                    
+                    (cons
+                        ;to construct the left hand side
+                        (cons
+                            
+                            (op (rhs x))
+                            
+                            ;then combine with 
+                            (cons
+                                ;the lhs of x
+                                (lhs x) 
+                                
+                                ;and the lhs of the rhs of x
+                                (cons (lhs (rhs x)) '())
+                            )
+                        )
+                        
+                        
+                        (cons
+                            ;this is just the rhs of the rhs of x
+                            (cons 
+                                '/ 
+                                (cons
+                                    '1
+                                    (cons
+                                        (rhs (rhs x))
+                                        '()
+                                    )
+                                )
+                            )
+                            '()
+                        )
+
+                    )
+                    
+                    
+                )
+            )
+            
+            (else
+                ;combine the equal sign with the proper lefthand side and righthand size
+                (cons '= 
+                    
+                    (cons
+                        ;to construct the left hand side
+                        (cons
+                            ;flip the op
+                            (opflip (op (rhs x)))
+                            
+                            ;then combine with 
+                            (cons
+                                ;the lhs of x
+                                (lhs x) 
+                                
+                                ;and the lhs of the rhs of x
+                                (cons (lhs (rhs x)) '())
+                            )
+                        )
+                        
+                        
+
+                        ;this is just the rhs of the rhs of x
+                        (cons (rhs (rhs x)) '())
+
+                    )
+                    
+                    
+                )
+            )
+            
+        )
     )
     
+)
+
+(define unary
+    (lambda (x)
+        (cond
+            ((null? (cdr (cdr x))) #t)
+            (else #f)
+        )
+    )
 )
 
 (define opflip
@@ -211,12 +381,86 @@
     )
 )
 
+;moveright takes the right hand term of the right h
+
 (define moveright
     (lambda (x)
-    
-
-                (cons '= 
+        (cond
+            ;unary check
+            ((unary (rhs x)) 
+                (cond
+                    ((equal? (op (rhs x)) '-)
+                        ;so we just have to multiply both sides by negative 1
+                        (cons
+                            '=
+                            (cons
+                                (cons 
+                                    '-
+                                    (cons 
+                                        (lhs x) '()
+                                    )
+                                
+                                )
+                                (cons
+                                    (lhs (rhs x))
+                                    '()
+                                )
+                            )
+                        )
+                     
+                     
+                     
+                    )
                     
+                    ((equal? (op (rhs x)) 'sqrt)
+                        (cons
+                            '=
+                            (cons
+                                (cons 
+                                    'expt
+                                    (cons 
+                                        (lhs x) 
+                                        (cons '2 '())
+                                    )
+                                
+                                )
+                                (cons
+                                    (lhs (rhs x))
+                                    '()
+                                )
+                            )
+                        )
+                        
+                    )
+                )
+                
+            )
+            
+            ((equal? (op (rhs x)) 'expt)
+                ;the lhs becomes sqrt and the other side is just the lhs
+                    (cons
+                            '=
+                            (cons
+                                (cons 
+                                    'sqrt
+                                    (cons
+                                    (lhs x) '())
+                                
+                                )
+                                (cons
+                                    (lhs (rhs x))
+                                    '()
+                                )
+                            )
+                        )
+            ) 
+            
+            
+            
+            (else 
+                ;construct the new list
+                (cons '= 
+                    ;construct the left and right side
                     (cons
                         ;to construct the left hand side
                         (cons
@@ -244,9 +488,14 @@
                 )
                 
             )
-            
-    
+        )
+        
+    )
 )
 
 
 ;(solve '(= a (+ b c)) 'b)
+;(solve '(= a (- b)) 'b)
+;(solve '(= a (sqrt b)) 'b)
+;(solve '(= a (expt b 2)) 'b)
+;(solve '(= a (/ b c)) 'b)
