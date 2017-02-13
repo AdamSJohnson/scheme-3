@@ -143,226 +143,153 @@
 
 (define solve
     (lambda (x y)
-        (cond
-            ;((not (member? y (vars x))) '())
-            ;if the lhs of x is y just return x
-            ((equal? y (lhs x)) x)
-            ;if the rhs is y then return the list as (<op> <rhs> <lhs>)
-            ((equal? y (rhs x))
-                (cons (op x) (cons (rhs x) (cons (lhs x) '())))
-            )
+       
+        (let ((l (lhs x))
+              (r (rhs x)))
+            (cond
+                ;((not (member? y (vars x))) '())
+                ;if the lhs of x is y just return x
+                ((equal? y l) x)
+                ;if the rhs is y then return the list as (<op> <rhs> <lhs>)
+                ((equal? y r)
+                    `(= ,r ,l)
+                )
             
-            ;if the rhs is not equal to y and the rhs is not a list
-            ((not (list? (rhs x)))
-                '()
-            )
-            (else
-                ;at this point the rhs contains something we can solve for!
-                (append (solve (moveleft x) y) (solve (moveright x) y) )
-                ;(moveleft x)
-
-            )
-        )
-    )
-)
-
-(define moveleft
-    (lambda (x)
-        (cond
-            ;unary check
-            ((unary (rhs x)) 
-                (cond
-                    ((equal? (op (rhs x)) '-)
-                        ;so we just have to multiply both sides by negative 1
-                        (cons
-                            '=
-                            (cons
-                                (cons 
-                                    '-
-                                    (cons 
-                                        (lhs x) '()
-                                    )
-                                
-                                )
-                                (cons
-                                    (lhs (rhs x))
-                                    '()
-                                )
+                ;if the rhs is not equal to y and the rhs is not a list
+                ((not (list? r)) '())
+                
+                ((unary r)
+                    (let (
+                        (rop (op r))
+                        (lr (lhs r))
+                         )
+                        (cond
+                        
+                            ;lets do our sqrt case
+                            ; (= a ( sqrt b))
+                            ; (= (expt a 2) b)
+                            ((equal? rop 'sqrt)
+                                (solve `(= (expt ,l 2) ,lr)  y)
                             )
-                        )
-                     
-                     
-                     
-                    )
-                    
-                    ((equal? (op (rhs x)) 'sqrt)
-                        (cons
-                            '=
-                            (cons
-                                (cons 
-                                    'expt
-                                    (cons 
-                                        (lhs x) 
-                                        (cons '2 '())
-                                    )
-                                
-                                )
-                                (cons
-                                    (lhs (rhs x))
-                                    '()
-                                )
+                            
+                            ;lets do our exp case
+                            ; (= a ( exp b))
+                            ; (= (log a) b)
+                            ((equal? rop 'exp)
+                                (solve `(= (log ,l ) ,lr)  y)
+                            )
+                            
+                            ;lets do our log case
+                            ; (= a ( log b))
+                            ; (= (exp a) b)
+                            ((equal? rop 'log)
+                                (solve `(= (log ,l ) ,lr)  y)
+                            )
+                            
+                            ;lets do our - unary case
+                            ; (= a (- b))
+                            ; (= (- a) b)
+                            ((equal? rop '-)
+                                (solve `(= (- ,l ) ,lr)  y)
                             )
                         )
                         
                     )
                 )
                 
-            )
-            
-            ;special case if the other side is expt n 2
-            ((equal? (op (rhs x)) 'expt)
-                ;the lhs becomes sqrt and the other side is just the lhs
-                    (cons
-                            '=
-                            (cons
-                                (cons 
-                                    'sqrt
-                                    (cons
-                                    (lhs x) '())
-                                
-                                )
-                                (cons
-                                    (lhs (rhs x))
-                                    '()
-                                )
-                            )
-                        )
-            )
-            
-            ;move left has some special rules with -, /, log
-            ((equal? (op (rhs x)) '-)
-                ;the lhs becomes sqrt and the other side is just the lhs
-                (cons '= 
-                    
-                    (cons
-                        ;to construct the left hand side
-                        (cons
-                            ;flip the op
-                            (op (rhs x))
-                            
-                            ;then combine with 
-                            (cons
-                                ;the lhs of x
-                                (lhs x) 
-                                
-                                ;and the lhs of the rhs of x
-                                (cons (lhs (rhs x)) '())
-                            )
+                (else
+                    (let (
+                        (rop (op r))
+                        (lr (lhs r))
+                        (rr (rhs r))
                         )
                         
-                        
-                        (cons
-                            ;this is just the rhs of the rhs of x
-                            (cons 
-                                '- 
-                                (cons
-                                    (rhs (rhs x))
-                                    '()
-                                )
-                            )
-                            '()
-                        )
-
-                    )
-                    
-                    
-                )
-            )
-            
-            ((equal? (op (rhs x)) '/)
-                ;the lhs becomes sqrt and the other side is just the lhs
-                (cons '= 
-                    
-                    (cons
-                        (cons
-                            (op (rhs x))
-                            
-                            (cons 
-                                '1
-                                ;to construct the left hand side
-                                (cons
-
-                                        (cons
-                                            '*
-                                            (cons
-                                                ;and the lhs of the rhs of x
-                                                (lhs (rhs x)) 
-                                                
-                                                ;the lhs of x
-                                                (cons
-                                                    (lhs x)
-                                                    '()
-                                                )
-                                            )
+                        (cond
+                            ;lets doo the addition case
+                            ((equal? rop '+)
+                                (let (
+                                    (resl (solve `(= (- ,l ,lr) ,rr )  y) )
+                                    )
+                                    (cond
+                                        ((null? resl) 
+                                            (solve `(= (- ,l ,rr) ,lr ) y )
                                         )
-                                        '()
-
-                                    
+                                        
+                                        (else resl)
+                                    )
+                                
                                 )
                             )
-                        )
-                        
-                        (cons
-                            ;this is just the rhs of the rhs of x
-
-                            (rhs (rhs x))
-
                             
-                            '()
-                        )
-
-                    )
-                    
-                    
-                )
-            )
-            
-            (else
-                ;combine the equal sign with the proper lefthand side and righthand size
-                (cons '= 
-                    
-                    (cons
-                        ;to construct the left hand side
-                        (cons
-                            ;flip the op
-                            (opflip (op (rhs x)))
-                            
-                            ;then combine with 
-                            (cons
-                                ;the lhs of x
-                                (lhs x) 
+                           ;lets doo the subtraction case!
+                           ; (= a ( - b c)) 
+                           ; (= (- b a) c) or (= (+ a c) b)
+                           ((equal? rop '-) 
+                                (let (
+                                    (resl (solve `(= (- ,lr ,l) ,rr )  y) )
+                                    )
+                                    (cond
+                                        ((null? resl) 
+                                            (solve `(= (+ ,l ,rr) ,lr ) y )
+                                        )
+                                        
+                                        (else resl)
+                                    )
                                 
-                                ;and the lhs of the rhs of x
-                                (cons (lhs (rhs x)) '())
+                                )
+                            )
+                            
+                            ;multiplication case
+                            ; (= a (* b c)) 
+                            ; (= (/ a b) c) or (= (/ a c) b)
+                            ((equal? rop '*) 
+                                (let (
+                                    (resl (solve `(= (/ ,l ,lr) ,rr )  y) )
+                                    )
+                                    (cond
+                                        ((null? resl) 
+                                            (solve `(= (/ ,l ,rr) ,lr ) y )
+                                        )
+                                        
+                                        (else resl)
+                                    )
+                                
+                                )
+                            )
+                            
+                            ;division case
+                            ; (= a ( / b c)) 
+                            ; (= (* a c) b) or (= (/ b a) (c))
+                            ((equal? rop '/) 
+                                (let (
+                                    (resl (solve `(= (/ ,lr ,l) ,rr )  y) )
+                                    )
+                                    (cond
+                                        ((null? resl) 
+                                            (solve `(= (* ,l ,rr) ,lr ) y )
+                                        )
+                                        
+                                        (else resl)
+                                    )
+                                )
+                            )
+                            
+                            ;expt case
+                            ; ( = a ( expt b 2))
+                            ; (= (sqrt a) b)
+                            ((equal? rop 'expt) 
+                                (solve `(= (sqrt ,l) ,lr)  y)
                             )
                         )
-                        
-                        
-
-                        ;this is just the rhs of the rhs of x
-                        (cons (rhs (rhs x)) '())
-
                     )
-                    
-                    
                 )
             )
-            
         )
     )
-    
 )
 
+; unary takes an expression and returns if the expression is unary
+; params x - an expression in the form (<op> <l> <r?>) where <r?> could be optional
 (define unary
     (lambda (x)
         (cond
@@ -372,136 +299,18 @@
     )
 )
 
-(define opflip
-    (lambda (x)
-        (cond
-            ((equal? x '+) '-)
-            ((equal? x '-) '+)
-            ((equal? x '*) '/)
-            ((equal? x '/) '*)
-            ((equal? x 'exp) 'log)
-            ((equal? x 'log) 'exp)
-            ((equal? x 'expt) 'sqrt)
-            ((equal? x 'sqrt) 'expt) 
-        )
-    )
-)
-
-;moveright takes the right hand term of the right h
-
-(define moveright
-    (lambda (x)
-        (cond
-            ;unary check
-            ((unary (rhs x)) 
-                (cond
-                    ((equal? (op (rhs x)) '-)
-                        ;so we just have to multiply both sides by negative 1
-                        (cons
-                            '=
-                            (cons
-                                (cons 
-                                    '-
-                                    (cons 
-                                        (lhs x) '()
-                                    )
-                                
-                                )
-                                (cons
-                                    (lhs (rhs x))
-                                    '()
-                                )
-                            )
-                        )
-
-                    )
-                    
-                    ((equal? (op (rhs x)) 'sqrt)
-                        (cons
-                            '=
-                            (cons
-                                (cons 
-                                    'expt
-                                    (cons 
-                                        (lhs x) 
-                                        (cons '2 '())
-                                    )
-                                
-                                )
-                                (cons
-                                    (lhs (rhs x))
-                                    '()
-                                )
-                            )
-                        )
-                        
-                    )
-                )
-                
-            )
-            
-            ((equal? (op (rhs x)) 'expt)
-                ;the lhs becomes sqrt and the other side is just the lhs
-                    (cons
-                            '=
-                            (cons
-                                (cons 
-                                    'sqrt
-                                    (cons
-                                    (lhs x) '())
-                                
-                                )
-                                (cons
-                                    (lhs (rhs x))
-                                    '()
-                                )
-                            )
-                        )
-            ) 
-            
-            
-            
-            (else 
-                ;construct the new list
-                (cons '= 
-                    ;construct the left and right side
-                    (cons
-                        ;to construct the left hand side
-                        (cons
-                            ;flip the op
-                            (opflip (op (rhs x)))
-                            
-                            ;then combine with 
-                            (cons
-                                ;the lhs of x
-                                (lhs x) 
-                                
-                                ;and the lhs of the rhs of x
-                                (cons (rhs (rhs x)) '())
-                            )
-                        )
-                        
-                        
-
-                        ;this is just the rhs of the rhs of x
-                        (cons (lhs (rhs x)) '())
-
-                    )
-                    
-                    
-                )
-                
-            )
-        )
-        
-    )
-)
-
+; Provided in the assignment rubric
+; constant? returns whether or not an expression passed into it is a constant in the system
+; param exp - something you want to know if it is a constant
+; returns true if it is a constant or false if not
 (define (constant? exp)
   (if (pair? exp) (eq? (car exp) 'quote) (not (symbol? exp))))
 
 
 ;(solve '(= a (+ b c)) 'b)
+;(solve '(= a (* b c)) 'b)
+;(solve '(= a (/ b c)) 'b)
+;(solve '(= a (- b c)) 'b)
 ;(solve '(= a (- b)) 'b)
 ;(solve '(= a (sqrt b)) 'b)
 ;(solve '(= a (expt b 2)) 'b)
