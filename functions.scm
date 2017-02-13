@@ -53,6 +53,7 @@
 
 (define vars
     (lambda (x)
+        
         (makeset (nvar x))
     )
 )
@@ -128,7 +129,7 @@
                     (else (cons (lhs x) '()))
                 )   
             )
-            
+                            
             ;check if the rhs is not a number
             ((not (number? (rhs x)))  (cons (rhs x) '())  ) 
             
@@ -139,3 +140,113 @@
 )
 
 
+(define solve
+    (lambda (x y)
+        (cond
+            ;if the lhs of x is y just return x
+            ((equal? y (lhs x)) x)
+            ;if the rhs is y then return the list as (<op> <rhs> <lhs>)
+            ((equal? y (rhs x))
+                (cons (op x) (cons (rhs x) (cons (lhs x) '())))
+            )
+            
+            ;if the rhs is not equal to y and the rhs is not a list
+            ((not (list? (rhs x)))
+                '()
+            )
+            (else
+                ;at this point the rhs contains something we can solve for!
+                (append (solve (moveright x) y) (solve (moveleft x) y))
+            )
+        )
+    )
+)
+
+(define moveleft
+    (lambda (x)
+            ;combine the equal sign with the proper lefthand side and righthand size
+            (cons '= 
+                
+                (cons
+                    ;to construct the left hand side
+                    (cons
+                        ;flip the op
+                        (opflip (op (rhs x)))
+                        
+                        ;then combine with 
+                        (cons
+                            ;the lhs of x
+                            (lhs x) 
+                            
+                            ;and the lhs of the rhs of x
+                            (cons (lhs (rhs x)) '())
+                        )
+                    )
+                    
+                    
+
+                    ;this is just the rhs of the rhs of x
+                    (cons (rhs (rhs x)) '())
+
+                )
+                
+                
+            )
+    )
+    
+)
+
+(define opflip
+    (lambda (x)
+        (cond
+            ((equal? x '+) '-)
+            ((equal? x '-) '+)
+            ((equal? x '*) '/)
+            ((equal? x '/) '*)
+            ((equal? x 'exp) 'log)
+            ((equal? x 'log) 'exp)
+            ((equal? x 'expt) 'sqrt)
+            ((equal? x 'sqrt) 'expt) 
+        )
+    )
+)
+
+(define moveright
+    (lambda (x)
+    
+
+                (cons '= 
+                    
+                    (cons
+                        ;to construct the left hand side
+                        (cons
+                            ;flip the op
+                            (opflip (op (rhs x)))
+                            
+                            ;then combine with 
+                            (cons
+                                ;the lhs of x
+                                (lhs x) 
+                                
+                                ;and the lhs of the rhs of x
+                                (cons (rhs (rhs x)) '())
+                            )
+                        )
+                        
+                        
+
+                        ;this is just the rhs of the rhs of x
+                        (cons (lhs (rhs x)) '())
+
+                    )
+                    
+                    
+                )
+                
+            )
+            
+    
+)
+
+
+;(solve '(= a (+ b c)) 'b)
