@@ -3,7 +3,6 @@
 ; 2/13/2017 Monday
 
 
-
 ; op - takes a function list (+ a b) and returns to operator
 ; Params - x a list with a function being applied to a left and right
 ; Returns - the operator from a list (+ a b) => +
@@ -183,19 +182,19 @@
                             ; (= a ( log b))
                             ; (= (exp a) b)
                             ((equal? rop 'log)
-                                (solve `(= (log ,l ) ,lr)  y)
+                                (solve `(= (exp ,l ) ,lr)  y)
                             )
                             
                             ;lets do our - unary case
                             ; (= a (- b))
                             ; (= (- a) b)
                             ((equal? rop '-)
-                                (solve `(= (- ,l ) ,lr)  y)
-                            )
+                                (solve `(= (- ,l ) ,lr)  y)) 
                         )
-                        
                     )
+                    
                 )
+            
                 
                 (else
                     (let (
